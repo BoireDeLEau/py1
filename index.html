@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>芯片字符识别</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .upload-box { border: 2px dashed #ccc; padding: 30px; text-align: center; margin: 20px 0; }
+        #preview { max-width: 300px; margin: 20px auto; }
+        #result { padding: 15px; background: #f0f0f0; margin-top: 20px; }
+
+        .loading {
+            color: #666;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <nav style="margin-bottom: 30px; padding: 10px; background: #f8f9fa;">
+        <span style="margin-right: 20px;">欢迎，{{ username }}！</span>
+        <a href="{{ url_for('logout') }}">注销</a>
+    </nav>
+
+    <h1>芯片字符识别</h1>
+    
+    <div class="upload-box">
+        <input type="file" id="fileInput" accept="image/*">
+        <p>拖放文件到此区域或点击选择文件</p>
+    </div>
+
+    <div id="preview"></div>
+    <div id="result"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const resultDiv = document.getElementById('result');
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            preview.innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width: 100%">`;
+            resultDiv.innerHTML = '<div class="loading">识别中，请稍候...</div>';
+            // 创建FormData
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                setTimeout(() => {
+                    if (response.ok) {
+                        resultDiv.innerHTML = `
+                            <p>上传文件：${data.original}</p>
+                            <h3>识别结果：${data.result}</h3>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `错误：${data.error}`;
+                    }
+                }, 1500); 
+
+            } catch (error) {
+                setTimeout(() => {
+                    resultDiv.innerHTML = '网络错误，请重试';
+                }, 1500);
+            }
+        });
+
+        // 拖放功能
+        document.addEventListener('dragover', e => e.preventDefault());
+        document.addEventListener('drop', e => {
+            e.preventDefault();
+            if (e.dataTransfer.files[0]) {
+                fileInput.files = e.dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+    </script>
+</body>
+</html>
